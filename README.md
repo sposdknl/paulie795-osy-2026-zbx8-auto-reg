@@ -1,6 +1,6 @@
 # Debian 13 + Zabbix Agent 2 (8.0 LTS) – auto-registrace
 
-![Debian 13 a Zabbix](Images/debian13-zabbix-agent2-hero.webp)
+![Debian 13 a Zabbix](Images/hero.jpg)
 
 **Autor:** Pavel Podzimek (Paulie795), OSY 2026
 
