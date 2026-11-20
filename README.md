@@ -1,38 +1,72 @@
-# OSY: Automatická registrace Debianu 13 do Zabbixu
+# Debian 13 + Zabbix Agent 2 (8.0 LTS) – auto-registrace
 
-![Virtuální server s Debianem 13 propojený se Zabbix monitoringem](Images/debian13-zabbix-agent2-hero.webp)
+![Debian 13 a Zabbix](Images/debian13-zabbix-agent2-hero.webp)
 
-Toto je šablona zadání pro výuku předmětu OSY na [osy.sposdk.cz](https://osy.sposdk.cz/). Z této šablony vznikne váš vlastní žákovský repozitář. Pracujte a odevzdávejte změny v něm.
+**Autor:** Pavel Podzimek (Paulie795), OSY 2026
 
-## Cíl úlohy
+## O co jde
 
-Spusťte pomocí Vagrantu virtuální stroj s **Debianem 13**. Nainstalujte na něj **Zabbix Agent 2 verze 8.0 LTS** a nastavte jeho automatickou registraci na server `enceladus.pfsense.cz`. Instalace a konfigurace agenta musí proběhnout automaticky prostřednictvím provisioningu ve `Vagrantfile`; ruční instalace uvnitř virtuálního stroje nestačí. Vzorové skripty najdete v adresáři [`Example/`](Example/). Výsledkem má být funkční, monitorovaný host s vaším jedinečným názvem.
+Celý server se postaví jedním příkazem. Vagrant vytvoří VM s Debianem 13, nainstaluje do ní Zabbix Agent 2 ve verzi 8.0 LTS a nastaví ho tak, aby se sám přihlásil na školní Zabbix server `enceladus.pfsense.cz`. Nic se nedělá ručně uvnitř VM, všechno řeší skripty při provisioningu.
 
-## Požadavky
+## Jak to spustit
 
-1. Vytvořte v kořeni svého repozitáře `Vagrantfile` pro Debian 13. Jako výchozí bod můžete použít [`Vagrant/Vagrantfile-debian`](Vagrant/Vagrantfile-debian).
-2. Připravte vlastní instalační a konfigurační skripty a zapojte je jako Vagrant provisionery. Instalace musí používat **oficiální repozitář Zabbix 8.0 pro Debian 13**, nikoli balíček starší verze nebo balíček z výchozího repozitáře Debianu.
-3. Nastavte v agentovi `Server` a `ServerActive` na `enceladus.pfsense.cz`, `HostMetadata=SPOS` a jedinečný `Hostname`. Název hosta musí zůstat stejný po restartu virtuálního stroje i po opakovaném spuštění provisioningu.
-4. Registrace proběhne na Zabbix serveru `enceladus.pfsense.cz`, kde jsou již připravena pravidla pro hosty s `HostMetadata=SPOS`. Po registraci ověřte, že má váš host přiřazenou skupinu, štítek a šablonu pro monitoring Linuxu agentem 2.
-5. Ověřte, že se host v Zabbixu skutečně objevil a že z něj přicházejí data.
+```sh
+vagrant up
+```
 
-## Stručná nápověda k postupu
+Když upravím skripty, stačí `vagrant provision`. Pro úplně čistý start `vagrant destroy -f` a znovu `vagrant up`.
 
-- Projděte si ukázku v adresáři [`Example/`](Example/). Je určena pro starší Ubuntu a starší Zabbix: použijte ji jen jako inspiraci pro strukturu Vagrantfile a skriptů.
-- Na [stránce ke stažení Zabbixu](https://www.zabbix.com/download) vyberte větev **8.0 LTS**, distribuci **Debian 13** a komponentu **Agent 2**. Získané instalační kroky převeďte do skriptu. Po instalaci zkontrolujte verzi agenta a stav služby.
-- V konfiguraci `/etc/zabbix/zabbix_agent2.conf` se zaměřte na parametry `Hostname`, `Server`, `ServerActive` a `HostMetadata`. Automatickou registraci zahajuje aktivní spojení agenta se serverem.
-- Při hledání chyby ověřte dostupnost serveru `enceladus.pfsense.cz`, stav služby `zabbix-agent2` a její záznamy v systémovém žurnálu.
+## Co dělají jednotlivé skripty
 
-## Co odevzdat
+**`install-tools.sh`** – doinstaluje nástroje, které se hodí při ladění (`htop`, `btop`, `mc`, `nmap`, `netcat`, `git`, `vim`…).
 
-Ve svém žákovském repozitáři doporučujeme odstranit vše, co jste ze šablony nevyužili, a ponechat jen soubory potřebné k odevzdání:
+**`install-zabbix8-agent2.sh`** – přidá repozitář přímo od Zabbixu (ne ten z Debianu, tam je starší verze) a nainstaluje `zabbix-agent2`. Na konci si zkontroluje, že je opravdu verze 8, jinak skončí chybou. Když už agent 8 nainstalovaný je, instalaci přeskočí, takže opakovaný provisioning nic nerozbije.
 
-- Funkční `Vagrantfile` a vlastní instalační a konfigurační skripty, které automaticky připraví agenta.
-- V adresáři `Images/` snímky obrazovky dokazující **registraci hosta s vaším jedinečným názvem** a **funkční monitorování** (například aktuálně přijímaná data v Zabbixu).
-- Upravený `README.md` se stručným popisem postupu práce, způsobem spuštění a ověření výsledku. Můžete do něj přidat také vlastní tematický obrázek.
+**`configure-zabbix8-agent2.sh`** – nastaví agenta:
 
-## Dokumentace
+| Parametr | Hodnota | Proč |
+|---|---|---|
+| `Server` | `enceladus.pfsense.cz` | odkud se smí ptát server |
+| `ServerActive` | `enceladus.pfsense.cz` | kam agent sám posílá data |
+| `HostMetadata` | `SPOS` | podle toho server pozná, jaké pravidlo auto-registrace použít |
+| `Hostname` | `spos-debian-podzimek_pavel-<12 znaků>` | moje jedinečné jméno v Zabbixu |
 
-- [Zabbix 8.0: instalace z oficiálních balíčků](https://www.zabbix.com/documentation/8.0/en/manual/installation/install/packages)
-- [Zabbix 8.0: automatická registrace aktivního agenta](https://www.zabbix.com/documentation/8.0/en/manual/discovery/auto_registration)
-- [Zabbix 8.0: parametry konfigurace agenta 2](https://www.zabbix.com/documentation/8.0/en/manual/concepts/agent2/agent2_params)
+Jméno se vygeneruje z náhodného UUID jen jednou a uloží se do `/var/lib/zabbix/spos-hostname`. Při restartu nebo dalším provisioningu se použije to uložené, takže se v Zabbixu nevytvoří duplicitní host. Před zápisem do konfigurace skript smaže staré řádky se stejnými parametry, aby tam nebyly dvakrát.
+
+## Port
+
+Ve `Vagrantfile` je přesměrovaný port 80 z VM na `localhost:8080`.
+
+## Kontrola, že to běží
+
+```sh
+vagrant ssh
+cat /var/lib/zabbix/spos-hostname
+zabbix_agent2 -V
+systemctl status zabbix-agent2
+grep -E '^(Hostname|Server|ServerActive|HostMetadata)=' /etc/zabbix/zabbix_agent2.conf
+sudo tail -n 5 /var/log/zabbix/zabbix_agent2.log
+```
+
+V logu je při prvním spuštění vidět `host [...] not found` a hned potom `active checks on server are active again`. To znamená, že server agenta nejdřív neznal, auto-registrace ho založila a od té chvíle přijímá data.
+
+## Výsledek
+
+Host `spos-debian-podzimek_pavel-75a751f4c440` se zaregistroval, má štítky `OS: Linux`, `class: os`, `target: linux` a je ve stavu Enabled:
+
+![Můj host v Zabbixu](Images/DEB-ZBX8-Agent-dashboard.png)
+
+Z hosta chodí data (dostupnost agenta, paměť, CPU…):
+
+![Data z hosta](Images/DEB-ZBX8-Agent-reg-Data.png)
+
+## Problémy, na které jsem narazil
+
+- `zabbix_agent2 -V | head -1` shodil skript kvůli `set -o pipefail` (agent dostal SIGPIPE, když `head` zavřel rouru). Opraveno na `sed -n 1p`.
+- Šedá ikona ZBX u hosta není chyba. Agent pracuje v aktivním režimu, takže pasivní kontrola zvenku na port 10050 neprojde, ale data se přesto posílají.
+
+## Odkazy
+
+- [Instalace Zabbixu z balíčků (8.0)](https://www.zabbix.com/documentation/8.0/en/manual/installation/install/packages)
+- [Parametry Zabbix Agent 2](https://www.zabbix.com/documentation/8.0/en/manual/concepts/agent2/agent2_params)
+- [Auto-registrace aktivních agentů](https://www.zabbix.com/documentation/8.0/en/manual/discovery/auto_registration)
